@@ -42,6 +42,7 @@ class Player {
 
   update(){
     this.draw();
+    this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
     
     const notInTheBottom: boolean = this.position.y + this.height + this.velocity.y <= canvas.height;
@@ -51,16 +52,84 @@ class Player {
     } else {
       this.velocity.y = 0 
     }
-
   }
 }
 
 const player =  new Player();
 
+type PressControls = {
+  right: {
+    pressed: boolean
+  }
+  left: {
+    pressed: boolean
+  }
+}
+
+const keys: PressControls = {
+  right: {
+    pressed: false
+  },
+  left: {
+    pressed: false
+  } 
+}
+
 function animate(){
   requestAnimationFrame(animate);
   context.clearRect(0, 0, canvas.width, canvas.height);
   player.update();
-}
 
+  if(keys.right.pressed){
+    player.velocity.x = 5;
+  } else if(keys.left.pressed) {
+    player.velocity.x = -5;
+  } else player.velocity.x = 0;
+}
 animate();
+
+addEventListener("keyup", ({ code }) => {
+  switch (code) {
+    case "KeyA":
+      console.log("Left")
+      keys.left.pressed = false
+      break;
+    case "KeyW":
+      console.log("Up")
+      // player.velocity.y -= 20;
+      break;
+    case "KeyS":
+      console.log("Bottom")
+      break;
+    case "KeyD":
+      console.log("Right")
+      keys.right.pressed = false
+      break;
+  
+    default:
+      break;
+  }
+})
+
+addEventListener("keydown", ({ code }) => {
+  switch (code) {
+    case "KeyA":
+      console.log("Left")
+      keys.left.pressed = true
+      break;
+    case "KeyW":
+      console.log("Up")
+      player.velocity.y -= 20;
+      break;
+    case "KeyS":
+      console.log("Bottom")
+      break;
+    case "KeyD":
+      console.log("Right")
+      keys.right.pressed = true
+      break;
+  
+    default:
+      break;
+  }
+})

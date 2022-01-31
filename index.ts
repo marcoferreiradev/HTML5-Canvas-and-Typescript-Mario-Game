@@ -55,7 +55,28 @@ class Player {
   }
 }
 
+class Platform {
+  position: Position;
+  width: number;
+  height: number;
+
+  constructor(){
+    this.position = {
+      x: 200,
+      y: 150
+    }
+    this.width = 200;
+    this.height = 20;
+  }
+
+  draw(){
+    context.fillStyle = 'blue';
+    context.fillRect(this.position.x, this.position.y, this.width, this.height);
+  }
+}
+
 const player =  new Player();
+const platform = new Platform();
 
 type PressControls = {
   right: {
@@ -79,12 +100,25 @@ function animate(){
   requestAnimationFrame(animate);
   context.clearRect(0, 0, canvas.width, canvas.height);
   player.update();
+  platform.draw();
 
   if(keys.right.pressed){
     player.velocity.x = 5;
   } else if(keys.left.pressed) {
     player.velocity.x = -5;
   } else player.velocity.x = 0;
+
+  //platform collision detect
+  const collisionDetectionY = player.position.y + player.height <= platform.position.y;
+  const collisionDetectionWithVelocityY = player.position.y + player.height + player.velocity.y >= platform.position.y
+  const fallDownLeft = player.position.x + player.width >= platform.position.x;
+  const fallDownRight = player.position.x <= platform.position.x + platform.width;
+
+  const intereractionWithPlatform = collisionDetectionY && collisionDetectionWithVelocityY && fallDownLeft && fallDownRight;
+
+  if(intereractionWithPlatform) {
+    player.velocity.y = 0;
+  }
 }
 animate();
 

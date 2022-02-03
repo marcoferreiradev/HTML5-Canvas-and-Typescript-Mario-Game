@@ -22,9 +22,9 @@ class Player {
   velocity: Velocity;
 
 
-  constructor(){
+  constructor() {
     this.position = {
-      x: 40,
+      x: 100,
       y: 40
     }
     this.width = 30;
@@ -35,22 +35,22 @@ class Player {
     }
   }
 
-  draw(){
+  draw() {
     context.fillStyle = 'red';
     context.fillRect(this.position.x, this.position.y, this.width, this.height);
   }
 
-  update(){
+  update() {
     this.draw();
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
-    
+
     const notInTheBottom: boolean = this.position.y + this.height + this.velocity.y <= canvas.height;
-    
-    if(notInTheBottom) {
+
+    if (notInTheBottom) {
       this.velocity.y += gravity;
     } else {
-      this.velocity.y = 0 
+      this.velocity.y = 0
     }
   }
 }
@@ -60,23 +60,32 @@ class Platform {
   width: number;
   height: number;
 
-  constructor(){
+  constructor({ x, y }: Position) {
     this.position = {
-      x: 200,
-      y: 150
+      x: x,
+      y: y
     }
     this.width = 200;
     this.height = 20;
   }
 
-  draw(){
+  draw() {
     context.fillStyle = 'blue';
     context.fillRect(this.position.x, this.position.y, this.width, this.height);
   }
 }
 
-const player =  new Player();
-const platform = new Platform();
+const player = new Player();
+const platforms = [
+  new Platform({
+    x: 200,
+    y: 150
+  }),
+  new Platform({
+    x: 500,
+    y: 250
+  })
+];
 
 type PressControls = {
   right: {
@@ -93,32 +102,48 @@ const keys: PressControls = {
   },
   left: {
     pressed: false
-  } 
+  }
 }
 
-function animate(){
+function animate() {
   requestAnimationFrame(animate);
   context.clearRect(0, 0, canvas.width, canvas.height);
   player.update();
-  platform.draw();
+  platforms.forEach(platform => {
+    platform.draw();
+  })
 
-  if(keys.right.pressed){
+  console.log('player position', player.position.x);
+  if (keys.right.pressed && player.position.x < 400) {
     player.velocity.x = 5;
-  } else if(keys.left.pressed) {
+  } else if (keys.left.pressed && player.position.x > 100) {
     player.velocity.x = -5;
-  } else player.velocity.x = 0;
+  } else {
+    player.velocity.x = 0;
+
+
+    platforms.forEach(platform => {
+      if (keys.right.pressed) {
+        platform.position.x -= 5
+      } else if (keys.left.pressed) {
+        platform.position.x += 5
+      }
+    })
+  }
 
   //platform collision detect
-  const collisionDetectionY = player.position.y + player.height <= platform.position.y;
-  const collisionDetectionWithVelocityY = player.position.y + player.height + player.velocity.y >= platform.position.y
-  const fallDownLeft = player.position.x + player.width >= platform.position.x;
-  const fallDownRight = player.position.x <= platform.position.x + platform.width;
+  platforms.forEach(platform => {
+    const collisionDetectionY = player.position.y + player.height <= platform.position.y;
+    const collisionDetectionWithVelocityY = player.position.y + player.height + player.velocity.y >= platform.position.y
+    const fallDownLeft = player.position.x + player.width >= platform.position.x;
+    const fallDownRight = player.position.x <= platform.position.x + platform.width;
 
-  const intereractionWithPlatform = collisionDetectionY && collisionDetectionWithVelocityY && fallDownLeft && fallDownRight;
+    const intereractionWithPlatform = collisionDetectionY && collisionDetectionWithVelocityY && fallDownLeft && fallDownRight;
 
-  if(intereractionWithPlatform) {
-    player.velocity.y = 0;
-  }
+    if (intereractionWithPlatform) {
+      player.velocity.y = 0;
+    }
+  })
 }
 animate();
 
@@ -139,7 +164,7 @@ addEventListener("keyup", ({ code }) => {
       console.log("Right")
       keys.right.pressed = false
       break;
-  
+
     default:
       break;
   }
@@ -148,21 +173,21 @@ addEventListener("keyup", ({ code }) => {
 addEventListener("keydown", ({ code }) => {
   switch (code) {
     case "KeyA":
-      console.log("Left")
+      // console.log("Left")
       keys.left.pressed = true
       break;
     case "KeyW":
-      console.log("Up")
-      player.velocity.y -= 20;
+      // console.log("Up")
+      player.velocity.y -= 30;
       break;
     case "KeyS":
-      console.log("Bottom")
+      // console.log("Bottom")
       break;
     case "KeyD":
-      console.log("Right")
+      // console.log("Right")
       keys.right.pressed = true
       break;
-  
+
     default:
       break;
   }

@@ -3,8 +3,8 @@ import platform from '../img/platform.png';
 const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 const context = canvas.getContext('2d') as CanvasRenderingContext2D;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 1024;
+canvas.height = 576;
 
 type Coords = {
   x: number;
@@ -57,37 +57,53 @@ class Player {
   }
 }
 
+type PlatformBlock = Position & {
+  image: HTMLImageElement
+}
+
 class Platform {
   position: Position;
   width: number;
   height: number;
+  image: HTMLImageElement;
 
-  constructor({ x, y }: Position) {
+  constructor({ x, y, image }: PlatformBlock) {
     this.position = {
       x: x,
       y: y
     }
-    this.width = 200;
-    this.height = 20;
+    this.image = image;
+    this.width = image.width;
+    this.height = image.height;
   }
 
   draw() {
-    context.fillStyle = 'blue';
-    context.fillRect(this.position.x, this.position.y, this.width, this.height);
+    context.drawImage(this.image, this.position.x, this.position.y);
   }
 }
 
+const platformImage = new Image();
+platformImage.src = platform;
+platformImage.onload = () => dispatchEvent(new CustomEvent('platform-loaded'))
+
 const player = new Player();
-const platforms = [
-  new Platform({
-    x: 200,
-    y: 150
-  }),
-  new Platform({
-    x: 500,
-    y: 250
-  })
-];
+let platforms: Platform[] = [];
+
+addEventListener('platform-loaded', () => {
+  platforms = [
+    new Platform({
+      x: -1,
+      y: 470,
+      image: platformImage
+    }),
+    new Platform({
+      x: platformImage.width -3,
+      y: 470,
+      image: platformImage
+    })
+  ];
+})
+
 
 type PressControls = {
   right: {
@@ -111,13 +127,13 @@ let scrollOffset = 0;
 
 function animate() {
   requestAnimationFrame(animate);
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  player.update();
+  context.fillStyle = "white";
+  context.fillRect(0, 0, canvas.width, canvas.height);
   platforms.forEach(platform => {
     platform.draw();
   })
+  player.update();
 
-  console.log('player position', player.position.x);
   if (keys.right.pressed && player.position.x < 400) {
     player.velocity.x = 5;
   } else if (keys.left.pressed && player.position.x > 100) {
@@ -152,7 +168,7 @@ function animate() {
     }
   })
 
-  if(scrollOffset > 2000) {
+  if (scrollOffset > 2000) {
     console.log('You win');
   }
 }

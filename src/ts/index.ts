@@ -1,3 +1,5 @@
+import platform from '../img/platform.png';
+
 const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 const context = canvas.getContext('2d') as CanvasRenderingContext2D;
 

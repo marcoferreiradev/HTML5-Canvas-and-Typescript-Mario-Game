@@ -1,4 +1,6 @@
 import platform from '../img/platform.png';
+import background from '../img/background.png';
+import hills from '../img/hills.png';
 
 const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 const context = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -57,7 +59,7 @@ class Player {
   }
 }
 
-type PlatformBlock = Position & {
+type ObjectGame = Position & {
   image: HTMLImageElement
 }
 
@@ -67,7 +69,30 @@ class Platform {
   height: number;
   image: HTMLImageElement;
 
-  constructor({ x, y, image }: PlatformBlock) {
+  constructor({ x, y, image }: ObjectGame) {
+    this.position = {
+      x: x,
+      y: y
+    }
+
+    console.log('typeof image in class', typeof image)
+    this.image = image;
+    this.width = image.width;
+    this.height = image.height;
+  }
+
+  draw() {
+    context.drawImage(this.image, this.position.x, this.position.y);
+  }
+}
+
+class GenericObject {
+  position: Position;
+  width: number;
+  height: number;
+  image: HTMLImageElement;
+
+  constructor({ x, y, image }: ObjectGame) {
     this.position = {
       x: x,
       y: y
@@ -82,24 +107,73 @@ class Platform {
   }
 }
 
-const platformImage = new Image();
-platformImage.src = platform;
-platformImage.onload = () => dispatchEvent(new CustomEvent('platform-loaded'))
+type ObjectImage = [
+  key: string,
+  image: HTMLImageElement
+]
+
+type ObjectImageInitialize = [
+  key: string,
+  image: string
+]
+
+type ObjectsImages = ObjectImageInitialize[]
+
+function createImage(keyImage: string, imageSrc: string) {
+  return new Promise<ObjectImage>((resolve, reject) => {
+    const image: HTMLImageElement = new Image();
+    image.src = imageSrc;
+    console.log('typeof image', typeof image)
+    image.onload = () => resolve([keyImage, image]);
+  })
+}
+
+const objectImages: ObjectsImages = [
+  ['platform', platform], 
+  ['background', background], 
+  ['hills', hills]
+];
+
+let objectImagesElements: {
+  [key: string]: HTMLImageElement
+};
+
+Promise.all(objectImages.map(([keyImage, image]) => {
+  return createImage(keyImage, image);
+})).then((values) => {
+  objectImagesElements = Object.fromEntries(values);
+  dispatchEvent(new CustomEvent('images-loaded'))
+})
 
 const player = new Player();
 let platforms: Platform[] = [];
+let genericObjects: GenericObject[] = [];
 
-addEventListener('platform-loaded', () => {
+addEventListener('images-loaded', () => {
+  const {platform, background, hills} = objectImagesElements;
+
   platforms = [
     new Platform({
-      x: -1,
+      x: -5,
       y: 470,
-      image: platformImage
+      image: platform
     }),
     new Platform({
-      x: platformImage.width -3,
+      x: platform.width - 7,
       y: 470,
-      image: platformImage
+      image: objectImagesElements.platform
+    })
+  ];
+  genericObjects = [
+    new GenericObject({
+      x: -5,
+      y: -1,
+      image: background
+    }),
+    new GenericObject({
+      x: 0,
+      y: 0,
+      image: hills
     })
   ];
 })
@@ -129,6 +203,11 @@ function animate() {
   requestAnimationFrame(animate);
   context.fillStyle = "white";
   context.fillRect(0, 0, canvas.width, canvas.height);
+
+  genericObjects.forEach(genericObject => {
+    genericObject.draw();
+  })
+
   platforms.forEach(platform => {
     platform.draw();
   })
@@ -146,10 +225,16 @@ function animate() {
       platforms.forEach(platform => {
         platform.position.x -= 5
       });
+      genericObjects.forEach(genericObject => {
+        genericObject.position.x -=3;
+      })
     } else if (keys.left.pressed && scrollOffset >= 0) {
       scrollOffset -= 5;
       platforms.forEach(platform => {
         platform.position.x += 5
+      })
+      genericObjects.forEach(genericObject => {
+        genericObject.position.x +=3;
       })
     }
   }

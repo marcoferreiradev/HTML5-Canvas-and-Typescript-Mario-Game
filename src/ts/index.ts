@@ -53,8 +53,6 @@ class Player {
 
     if (notInTheBottom) {
       this.velocity.y += gravity;
-    } else {
-      this.velocity.y = 0
     }
   }
 }
@@ -145,7 +143,7 @@ Promise.all(objectImages.map(([keyImage, image]) => {
   dispatchEvent(new CustomEvent('images-loaded'))
 })
 
-const player = new Player();
+let player = new Player();
 let platforms: Platform[] = [];
 let genericObjects: GenericObject[] = [];
 
@@ -160,6 +158,11 @@ addEventListener('images-loaded', () => {
     }),
     new Platform({
       x: platform.width - 7,
+      y: 470,
+      image: objectImagesElements.platform
+    }),
+    new Platform({
+      x: platform.width * 2 + 100,
       y: 470,
       image: objectImagesElements.platform
     })
@@ -178,6 +181,51 @@ addEventListener('images-loaded', () => {
   ];
 })
 
+function init(){
+  player = new Player();
+
+  Promise.all(objectImages.map(([keyImage, image]) => {
+    return createImage(keyImage, image);
+  })).then((values) => {
+    objectImagesElements = Object.fromEntries(values);
+    dispatchEvent(new CustomEvent('images-loaded'))
+  })
+  
+  addEventListener('images-loaded', () => {
+    const {platform, background, hills} = objectImagesElements;
+  
+    platforms = [
+      new Platform({
+        x: -5,
+        y: 470,
+        image: platform
+      }),
+      new Platform({
+        x: platform.width - 7,
+        y: 470,
+        image: objectImagesElements.platform
+      }),
+      new Platform({
+        x: platform.width * 2 + 100,
+        y: 470,
+        image: objectImagesElements.platform
+      })
+    ];
+    genericObjects = [
+      new GenericObject({
+        x: -5,
+        y: -1,
+        image: background
+      }),
+      new GenericObject({
+        x: 0,
+        y: 0,
+        image: hills
+      })
+    ];
+  })
+  scrollOffset = 0;
+}
 
 type PressControls = {
   right: {
@@ -253,8 +301,15 @@ function animate() {
     }
   })
 
+  // Win 
   if (scrollOffset > 2000) {
     console.log('You win');
+  }
+
+  // Lose 
+  if(player.position.y > canvas.height) {
+    console.log('You losee');
+    init();
   }
 }
 animate();

@@ -1,4 +1,14 @@
+import {
+  Position,
+  Velocity,
+  ObjectGame,
+  ObjectImage,
+  ObjectsImages,
+  PressControls
+} from './utils/types';
+
 import platform from '../img/platform.png';
+import platformSmallTall from '../img/platformSmallTall.png';
 import background from '../img/background.png';
 import hills from '../img/hills.png';
 
@@ -8,15 +18,6 @@ const context = canvas.getContext('2d') as CanvasRenderingContext2D;
 canvas.width = 1024;
 canvas.height = 576;
 
-type Coords = {
-  x: number;
-  y: number;
-}
-
-type Position = Coords;
-type Velocity = Coords;
-
-
 const gravity: number = 1.5;
 
 class Player {
@@ -24,6 +25,7 @@ class Player {
   width: number;
   height: number;
   velocity: Velocity;
+  speed = 6;
 
 
   constructor() {
@@ -56,11 +58,6 @@ class Player {
     }
   }
 }
-
-type ObjectGame = Position & {
-  image: HTMLImageElement
-}
-
 class Platform {
   position: Position;
   width: number;
@@ -73,7 +70,6 @@ class Platform {
       y: y
     }
 
-    console.log('typeof image in class', typeof image)
     this.image = image;
     this.width = image.width;
     this.height = image.height;
@@ -83,7 +79,6 @@ class Platform {
     context.drawImage(this.image, this.position.x, this.position.y);
   }
 }
-
 class GenericObject {
   position: Position;
   width: number;
@@ -105,18 +100,6 @@ class GenericObject {
   }
 }
 
-type ObjectImage = [
-  key: string,
-  image: HTMLImageElement
-]
-
-type ObjectImageInitialize = [
-  key: string,
-  image: string
-]
-
-type ObjectsImages = ObjectImageInitialize[]
-
 function createImage(keyImage: string, imageSrc: string) {
   return new Promise<ObjectImage>((resolve, reject) => {
     const image: HTMLImageElement = new Image();
@@ -127,61 +110,22 @@ function createImage(keyImage: string, imageSrc: string) {
 }
 
 const objectImages: ObjectsImages = [
-  ['platform', platform], 
-  ['background', background], 
-  ['hills', hills]
+  ['platform', platform],
+  ['background', background],
+  ['hills', hills],
+  ['platformSmallTall', platformSmallTall]
 ];
 
 let objectImagesElements: {
   [key: string]: HTMLImageElement
 };
 
-Promise.all(objectImages.map(([keyImage, image]) => {
-  return createImage(keyImage, image);
-})).then((values) => {
-  objectImagesElements = Object.fromEntries(values);
-  dispatchEvent(new CustomEvent('images-loaded'))
-})
-
 let player = new Player();
 let platforms: Platform[] = [];
 let genericObjects: GenericObject[] = [];
+let platformReferenceWidth: number;
 
-addEventListener('images-loaded', () => {
-  const {platform, background, hills} = objectImagesElements;
-
-  platforms = [
-    new Platform({
-      x: -5,
-      y: 470,
-      image: platform
-    }),
-    new Platform({
-      x: platform.width - 7,
-      y: 470,
-      image: objectImagesElements.platform
-    }),
-    new Platform({
-      x: platform.width * 2 + 100,
-      y: 470,
-      image: objectImagesElements.platform
-    })
-  ];
-  genericObjects = [
-    new GenericObject({
-      x: -5,
-      y: -1,
-      image: background
-    }),
-    new GenericObject({
-      x: 0,
-      y: 0,
-      image: hills
-    })
-  ];
-})
-
-function init(){
+function init() {
   player = new Player();
 
   Promise.all(objectImages.map(([keyImage, image]) => {
@@ -190,11 +134,17 @@ function init(){
     objectImagesElements = Object.fromEntries(values);
     dispatchEvent(new CustomEvent('images-loaded'))
   })
-  
+
   addEventListener('images-loaded', () => {
-    const {platform, background, hills} = objectImagesElements;
-  
+    const { platform, background, hills, platformSmallTall } = objectImagesElements;
+    platformReferenceWidth = platform.width;
+
     platforms = [
+      new Platform({
+        x: platform.width * 4 + 300 - 2 + platform.width - platformSmallTall.width,
+        y: 270,
+        image: platformSmallTall
+      }),
       new Platform({
         x: -5,
         y: 470,
@@ -203,12 +153,27 @@ function init(){
       new Platform({
         x: platform.width - 7,
         y: 470,
-        image: objectImagesElements.platform
+        image: platform
       }),
       new Platform({
         x: platform.width * 2 + 100,
         y: 470,
-        image: objectImagesElements.platform
+        image: platform
+      }),
+      new Platform({
+        x: platform.width * 3 + 300,
+        y: 470,
+        image: platform
+      }),
+      new Platform({
+        x: platform.width * 4 + 300 - 2,
+        y: 470,
+        image: platform
+      }),
+      new Platform({
+        x: platform.width * 5 + 530 - 4,
+        y: 470,
+        image: platform
       })
     ];
     genericObjects = [
@@ -225,15 +190,6 @@ function init(){
     ];
   })
   scrollOffset = 0;
-}
-
-type PressControls = {
-  right: {
-    pressed: boolean
-  }
-  left: {
-    pressed: boolean
-  }
 }
 
 const keys: PressControls = {
@@ -261,28 +217,32 @@ function animate() {
   })
   player.update();
 
-  if (keys.right.pressed && player.position.x < 400) {
-    player.velocity.x = 5;
-  } else if (keys.left.pressed && player.position.x > 100) {
-    player.velocity.x = -5;
+  const walkToRight = keys.right.pressed && player.position.x < 400;
+  const walkToLeft = (keys.left.pressed && player.position.x > 100) || 
+    (keys.left.pressed && scrollOffset === 0 && player.position.x > 0);
+
+  if (walkToRight) {
+    player.velocity.x = player.speed;
+  } else if (walkToLeft) {
+    player.velocity.x = -player.speed;
   } else {
     player.velocity.x = 0;
 
     if (keys.right.pressed) {
-      scrollOffset += 5;
+      scrollOffset += player.speed;
       platforms.forEach(platform => {
-        platform.position.x -= 5
+        platform.position.x -= player.speed
       });
       genericObjects.forEach(genericObject => {
-        genericObject.position.x -=3;
+        genericObject.position.x -= player.speed * 0.66;
       })
-    } else if (keys.left.pressed && scrollOffset >= 0) {
-      scrollOffset -= 5;
+    } else if (keys.left.pressed && scrollOffset > 0) {
+      scrollOffset -= player.speed;
       platforms.forEach(platform => {
-        platform.position.x += 5
+        platform.position.x += player.speed
       })
       genericObjects.forEach(genericObject => {
-        genericObject.position.x +=3;
+        genericObject.position.x += player.speed * 0.66;
       })
     }
   }
@@ -302,16 +262,19 @@ function animate() {
   })
 
   // Win 
-  if (scrollOffset > 2000) {
+  const lastBlockPosition = platformReferenceWidth * 4 + 200 - 2;
+  if (scrollOffset >= lastBlockPosition) {
     console.log('You win');
   }
 
   // Lose 
-  if(player.position.y > canvas.height) {
+  if (player.position.y > canvas.height) {
     console.log('You losee');
     init();
   }
 }
+
+init();
 animate();
 
 addEventListener("keyup", ({ code }) => {
@@ -345,7 +308,7 @@ addEventListener("keydown", ({ code }) => {
       break;
     case "KeyW":
       // console.log("Up")
-      player.velocity.y -= 30;
+      player.velocity.y -= 25;
       break;
     case "KeyS":
       // console.log("Bottom")
